@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Force Sync - Sincronização Forçada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(0,0,0,0.4);
+            padding: 30px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        h1 {
+            color: #00ff88;
+            text-align: center;
+            border-bottom: 3px solid #00ff88;
+            padding-bottom: 15px;
+        }
+        h2 {
+            color: #00ff88;
+            margin-top: 20px;
+        }
+        .btn {
+            background: #00ff88;
+            color: black;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px 5px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #00ff55;
+        }
+        .btn-danger {
+            background: #ff4444;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #ff2222;
+        }
+        .status {
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 4px solid #00ff88;
+            font-family: monospace;
+            line-height: 1.6;
+        }
+        .status.error {
+            border-left-color: #ff4444;
+        }
+        .status.success {
+            border-left-color: #00ff88;
+        }
+        .warning {
+            background: rgba(255, 200, 0, 0.2);
+            border-left: 4px solid orange;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+        .info-box {
+            background: rgba(100, 150, 255, 0.2);
+            border-left: 4px solid #6496ff;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        th {
+            background: rgba(0,0,0,0.3);
+            color: #00ff88;
+        }
+        pre {
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 Sincronização Forçada de Cache</h1>
+    
+    <div class="container">
+        <h2>O que faz:</h2>
+        <ul>
+            <li>✅ Limpa TODO o localStorage</li>
+            <li>✅ Remove dados em cache</li>
+            <li>✅ Força re-login com dados FRESCOS do Firestore</li>
+            <li>✅ Limpa sessionStorage também</li>
+        </ul>
+        
+        <div class="warning">
+            ⚠️ <strong>AVISO:</strong> Você será desconectado. Terá que fazer login novamente.
+        </div>
+
+        <h2>Etapas:</h2>
+        
+        <button class="btn" onclick="etapa1()">1️⃣ Verificar Cache Atual</button>
+        <button class="btn btn-danger" onclick="etapa2()">2️⃣ LIMPAR TODO CACHE</button>
+        <button class="btn" onclick="etapa3()">3️⃣ Ir para Login</button>
+        <button class="btn" onclick="mostrarDetalhar()">🔍 Mostrar Detalhes do Cache</button>
+
+        <div id="output"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="sistema-auth.js"></script>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(titulo, mensagem, tipo = 'info') {
+            const html = `
+                <div class="status ${tipo}">
+                    <strong>${titulo}</strong><br>
+                    ${mensagem}
+                </div>
+            `;
+            output.innerHTML += html;
+        }
+
+        function etapa1() {
+            output.innerHTML = '';
+            log('🔍 Verificando Cache...', 'Por favor, aguarde...');
+            
+            setTimeout(() => {
+                const cache = {
+                    localStorage: {...localStorage},
+                    sessionStorage: {...sessionStorage},
+                };
+                
+                const html = `
+                    <div class="info-box">
+                        <strong>📊 Cache Atual:</strong><br>
+                        <table>
+                            <tr>
+                                <th>Local</th>
+                                <th>Chave</th>
+                                <th>Tamanho</th>
+                                <th>Valor (primeiros 50 caracteres)</th>
+                            </tr>
+                `;
+                
+                // localStorage
+                for (let key in localStorage) {
+                    if (localStorage.hasOwnProperty(key)) {
+                        const valor = localStorage[key];
+                        const display = valor.substring(0, 50) + (valor.length > 50 ? '...' : '');
+                        html += `
+                            <tr>
+                                <td>localStorage</td>
+                                <td><strong>${key}</strong></td>
+                                <td>${valor.length} bytes</td>
+                                <td><code>${display}</code></td>
+                            </tr>
+                        `;
+                    }
+                }
+                
+                // sessionStorage
+                for (let key in sessionStorage) {
+                    if (sessionStorage.hasOwnProperty(key)) {
+                        const valor = sessionStorage[key];
+                        const display = valor.substring(0, 50) + (valor.length > 50 ? '...' : '');
+                        html += `
+                            <tr>
+                                <td>sessionStorage</td>
+                                <td><strong>${key}</strong></td>
+                                <td>${valor.length} bytes</td>
+                                <td><code>${display}</code></td>
+                            </tr>
+                        `;
+                    }
+                }
+                
+                output.innerHTML += html + '</table></div>';
+                
+                const totalLS = Object.keys(localStorage).length;
+                const totalSS = Object.keys(sessionStorage).length;
+                
+                if (totalLS > 0 || totalSS > 0) {
+                    log(
+                        '⚠️ Cache Encontrado!',
+                        `localStorage: ${totalLS} itens<br>sessionStorage: ${totalSS} itens<br><br>Clique no botão "2️⃣ LIMPAR TODO CACHE" para remover tudo.`,
+                        'warning'
+                    );
+                } else {
+                    log(
+                        '✅ Cache Limpo',
+                        'Não há dados em cache. Você pode fazer login normalmente.',
+                        'success'
+                    );
+                }
+            }, 500);
+        }
+
+        function etapa2() {
+            if (!confirm('⚠️ CONFIRMAR: Isso vai deletar TODOS os dados em cache e desconectar você.\n\nTem certeza?')) {
+                log('❌ Cancelado', 'A limpeza foi cancelada.');
+                return;
+            }
+
+            output.innerHTML = '';
+            log('🗑️ Limpando Cache...', 'Aguarde...');
+            
+            setTimeout(() => {
+                // Limpar localStorage
+                const lsKeys = Object.keys(localStorage);
+                lsKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                
+                // Limpar sessionStorage
+                const ssKeys = Object.keys(sessionStorage);
+                ssKeys.forEach(key => {
+                    sessionStorage.removeItem(key);
+                });
+                
+                // Fazer logout do Firebase
+                try {
+                    firebase.auth().signOut();
+                } catch (e) {
+                    console.log('Firebase logout OK');
+                }
+                
+                log(
+                    '✅ Cache Limpo com Sucesso!',
+                    `Deletados: ${lsKeys.length} itens do localStorage + ${ssKeys.length} itens do sessionStorage<br><br>Você será redirecionado para login em 3 segundos...`,
+                    'success'
+                );
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 3000);
+            }, 1000);
+        }
+
+        function etapa3() {
+            window.location.href = 'login.html';
+        }
+
+        function mostrarDetalhar() {
+            output.innerHTML = '';
+            
+            const html = `
+                <div class="info-box">
+                    <strong>📋 localStorage (JSON):</strong><br>
+                    <pre>${JSON.stringify(Object.fromEntries(Object.entries(localStorage)), null, 2)}</pre>
+                </div>
+                <div class="info-box">
+                    <strong>📋 sessionStorage (JSON):</strong><br>
+                    <pre>${JSON.stringify(Object.fromEntries(Object.entries(sessionStorage)), null, 2)}</pre>
+                </div>
+            `;
+            
+            output.innerHTML = html;
+        }
+
+        // Carregador inicial
+        window.addEventListener('load', () => {
+            console.log('Force Sync carregado. Pronto para limpar cache.');
+        });
+    </script>
+</body>
+</html>

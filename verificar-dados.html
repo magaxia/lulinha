@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Verificação de Dados - Magaxia</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .container {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 10px 0;
+        }
+        h1 {
+            color: #00ff88;
+            text-align: center;
+        }
+        h2 {
+            color: #00ff88;
+        }
+        .btn {
+            background: #00ff88;
+            color: black;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: #00ff55;
+        }
+        .data {
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .warning {
+            background: rgba(255, 200, 0, 0.2);
+            border-left: 4px solid orange;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+        .success {
+            background: rgba(0, 255, 0, 0.2);
+            border-left: 4px solid green;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+        .error {
+            background: rgba(255, 0, 0, 0.2);
+            border-left: 4px solid red;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Verificação de Dados - Magaxia</h1>
+
+    <div class="container">
+        <h2>📋 Como Testar se os Dados Estão Corretos</h2>
+
+        <div class="warning">
+            <strong>⚠️ IMPORTANTE:</strong> Abra o Console do navegador (F12 → Console) para ver os logs detalhados.
+        </div>
+
+        <h3>Passo 1: Testar Perfil</h3>
+        <a href="perfil.html" class="btn" target="_blank">🆔 Abrir Perfil</a>
+        <p>No console, você deve ver:</p>
+        <div class="data">
+🔐 Verificando autenticação no perfil...
+✅ Usuário autenticado, carregando dados FRESCOS do Firestore...
+📊 Dados FRESCOS carregados do Firestore: {nome: "...", telefone: "...", ...}
+💰 Carregando comissões para UID: ...
+👂 Iniciando escuta de atualizações em tempo real...
+        </div>
+
+        <h3>Passo 2: Testar Equipe</h3>
+        <a href="equipe.html" class="btn" target="_blank">👥 Abrir Equipe</a>
+        <p>No console, você deve ver:</p>
+        <div class="data">
+🔐 Verificando autenticação na equipe...
+✅ Usuário autenticado, carregando dados FRESCOS da equipe...
+🔍 Procurando usuário no banco: [UID]
+📊 Dados carregados: {nome: "...", ...}
+        </div>
+
+        <h3>Passo 3: Verificar se os Dados São ATUAIS</h3>
+        <ul>
+            <li>✅ Nome e telefone devem ser os mais recentes do Firestore</li>
+            <li>✅ Saldo deve refletir transações recentes</li>
+            <li>✅ Comissões devem mostrar valores corretos</li>
+            <li>✅ Equipe deve mostrar indicações reais</li>
+        </ul>
+
+        <h3>Se Ainda Estiver Mostrando Dados Antigos:</h3>
+        <div class="error">
+            <strong>❌ Problema Persistente:</strong>
+            <ol>
+                <li>Pressione Ctrl+F5 (forçar recarregamento)</li>
+                <li>Limpe o cache do navegador</li>
+                <li>Faça logout e login novamente</li>
+                <li>Verifique se os logs no console mostram "Dados FRESCOS"</li>
+            </ol>
+        </div>
+
+        <h3>Se os Logs Mostram Dados Antigos:</h3>
+        <div class="error">
+            <strong>🔧 Solução Técnica:</strong>
+            <p>Os dados no Firestore podem estar desatualizados. Verifique:</p>
+            <ul>
+                <li>Firebase Console → Firestore Database</li>
+                <li>Coleção "users" → seu documento</li>
+                <li>Verifique se nome/telefone estão corretos</li>
+                <li>Atualize manualmente se necessário</li>
+            </ul>
+        </div>
+
+        <h3>Diagnóstico Automático</h3>
+        <button class="btn" onclick="diagnosticar()">🔬 Executar Diagnóstico</button>
+        <div id="diagnostico"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="sistema-auth.js"></script>
+
+    <script>
+        function diagnosticar() {
+            const output = document.getElementById('diagnostico');
+            output.innerHTML = '<div class="data">🔍 Executando diagnóstico...</div>';
+
+            firebase.auth().onAuthStateChanged(user => {
+                if (!user) {
+                    output.innerHTML = '<div class="error">❌ Usuário não autenticado. Faça login primeiro.</div>';
+                    return;
+                }
+
+                const uid = user.uid;
+                output.innerHTML += `<div class="data">✅ Usuário autenticado: ${uid}</div>`;
+
+                // Verificar dados do usuário
+                window.SistemaAuth.db.collection('users').doc(uid).get()
+                    .then(doc => {
+                        if (!doc.exists) {
+                            output.innerHTML += '<div class="error">❌ Usuário não encontrado no Firestore</div>';
+                            return;
+                        }
+
+                        const dados = doc.data();
+                        output.innerHTML += `<div class="success">✅ Dados do Firestore:<br>${JSON.stringify(dados, null, 2)}</div>`;
+
+                        // Verificar localStorage
+                        const localData = localStorage.getItem('usuarioLogado');
+                        if (localData) {
+                            const parsed = JSON.parse(localData);
+                            output.innerHTML += `<div class="data">📱 Dados em cache:<br>${JSON.stringify(parsed, null, 2)}</div>`;
+
+                            // Comparar
+                            const mesmoNome = dados.nome === parsed.nome;
+                            const mesmoTelefone = dados.telefone === parsed.telefone;
+                            const mesmoSaldo = dados.saldo === parsed.saldo;
+
+                            if (mesmoNome && mesmoTelefone && mesmoSaldo) {
+                                output.innerHTML += '<div class="success">✅ Cache está sincronizado com Firestore</div>';
+                            } else {
+                                output.innerHTML += '<div class="warning">⚠️ Cache DESINCRONIZADO com Firestore</div>';
+                            }
+                        } else {
+                            output.innerHTML += '<div class="data">📱 Nenhum cache encontrado</div>';
+                        }
+                    })
+                    .catch(error => {
+                        output.innerHTML += `<div class="error">❌ Erro ao acessar Firestore: ${error.message}</div>`;
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
